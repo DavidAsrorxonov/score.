@@ -291,7 +291,7 @@ Use icons from `lucide-react` where appropriate, especially for compact actions.
 
 The public landing page should communicate the product clearly:
 
-- What Ghost AI does
+- What scōre. does
 - Who it is for
 - URL/domain input preview or call to action
 - Example report outcomes
@@ -402,7 +402,7 @@ The public report page should:
 - Be read-only
 - Hide private account details
 - Show report content clearly
-- Include Ghost AI branding unless future paid white-labeling removes it
+- Include scōre. branding unless future paid white-labeling removes it
 - Avoid authenticated-only controls
 
 ### PDF Report
