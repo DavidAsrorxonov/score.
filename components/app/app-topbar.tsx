@@ -1,4 +1,5 @@
-import * as React from "react";
+"use client";
+
 import Link from "next/link";
 import { Menu } from "lucide-react";
 
@@ -54,7 +55,7 @@ export function AppTopbar({
                       aria-current={isActive ? "page" : undefined}
                       className={cn(
                         "flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                        isActive && "bg-accent text-accent-foreground"
+                        isActive && "bg-accent text-accent-foreground",
                       )}
                     >
                       <Icon className="size-4" aria-hidden="true" />

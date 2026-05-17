@@ -39,7 +39,7 @@ export function AppSidebar({
   return (
     <aside
       className={cn(
-        "hidden min-h-svh w-64 shrink-0 border-r border-sidebar-border bg-sidebar lg:block",
+        "sticky top-0 hidden h-svh w-64 shrink-0 overflow-y-auto border-r border-sidebar-border bg-sidebar lg:block",
         className
       )}
     >

@@ -6,7 +6,7 @@ Update this file whenever the current phase, active feature, or implementation s
 UI design system foundation
 
 ## Current Goal
-Complete local visual verification for `context/feature/02-ui-design-system.md`.
+Complete user-managed visual verification for the fixed `/ui-preview` route.
 
 ## Completed
 - Read root agent instructions and required context files.
@@ -20,6 +20,9 @@ Complete local visual verification for `context/feature/02-ui-design-system.md`.
 - Added reusable app/public layout primitives, navigation foundations, shared empty/error/loading states, scan status and finding severity badges, score/metric/usage displays, and report presentation components with static typed props.
 - Added a temporary static `/ui-preview` route for visual verification of buttons, inputs, cards, badges, status/severity displays, scores, usage, states, report sections, long URL wrapping, and dark-mode token compatibility.
 - `npm run lint`, `npm run typecheck`, `npm run build`, and `git diff --check` pass.
+- Fixed `/ui-preview` hydration mismatch by making `AppTopbar` an explicit client component around the Radix Sheet mobile navigation.
+- Fixed desktop sidebar scrolling by making `AppSidebar` sticky to the viewport with an internal overflow area.
+- Re-ran `npm run lint`, `npm run typecheck`, `npm run build`, and `git diff --check`; all pass.
 
 ## In Progress
 - User-managed local dev server visual verification at `/ui-preview`.
