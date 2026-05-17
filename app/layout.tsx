@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ClerkProvider } from "@clerk/nextjs";
 import { Geist, Geist_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
@@ -24,10 +25,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body className="min-h-svh bg-background font-sans text-foreground antialiased">
-        <TooltipProvider>{children}</TooltipProvider>
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+        <body className="min-h-svh bg-background font-sans text-foreground antialiased">
+          <TooltipProvider>{children}</TooltipProvider>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

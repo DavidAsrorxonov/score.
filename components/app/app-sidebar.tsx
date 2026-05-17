@@ -18,11 +18,11 @@ export interface AppNavItem {
 }
 
 export const appNavItems: AppNavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "New Scan", href: "/scans/new", icon: Search },
-  { label: "Reports", href: "/reports", icon: FileText },
-  { label: "Usage", href: "/usage", icon: Gauge },
-  { label: "Settings", href: "/settings", icon: Settings },
+  { label: "Dashboard", href: "/app", icon: LayoutDashboard },
+  { label: "New Scan", href: "/app/new-scan", icon: Search },
+  { label: "Reports", href: "/app/reports", icon: FileText },
+  { label: "Usage", href: "/app/usage", icon: Gauge },
+  { label: "Settings", href: "/app/settings", icon: Settings },
 ];
 
 export interface AppSidebarProps {
@@ -32,7 +32,7 @@ export interface AppSidebarProps {
 }
 
 export function AppSidebar({
-  activeHref = "/dashboard",
+  activeHref = "/app",
   items = appNavItems,
   className,
 }: AppSidebarProps) {

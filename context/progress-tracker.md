@@ -3,10 +3,10 @@
 Update this file whenever the current phase, active feature, or implementation state changes.
 
 ## Current Phase
-UI design system foundation
+Authentication foundation
 
 ## Current Goal
-Complete user-managed visual verification for the fixed `/ui-preview` route.
+Implement Clerk authentication and protect the authenticated `/app` route group.
 
 ## Completed
 - Read root agent instructions and required context files.
@@ -23,19 +23,32 @@ Complete user-managed visual verification for the fixed `/ui-preview` route.
 - Fixed `/ui-preview` hydration mismatch by making `AppTopbar` an explicit client component around the Radix Sheet mobile navigation.
 - Fixed desktop sidebar scrolling by making `AppSidebar` sticky to the viewport with an internal overflow area.
 - Re-ran `npm run lint`, `npm run typecheck`, `npm run build`, and `git diff --check`; all pass.
+- Started Feature 03 authentication setup.
+- Installed `@clerk/nextjs`.
+- Added Clerk environment placeholders for sign-in/sign-up URLs and fallback redirects.
+- Wrapped the root layout with `ClerkProvider` while preserving Geist fonts, theme classes, and tooltip provider.
+- Added `proxy.ts` route protection for `/app` and future `/app/*` routes.
+- Added Clerk sign-in and sign-up catch-all routes.
+- Added a Clerk-backed server auth helper at `lib/auth/require-user.ts`.
+- Added a protected `/app` layout and dashboard placeholder with a Clerk `UserButton`.
+- Updated public navigation to show sign-in/sign-up actions for signed-out users and dashboard/account actions for signed-in users.
+- Moved authenticated navigation links into the `/app` route namespace.
+- Re-ran `npm run lint`, `npm run typecheck`, `npm run build`, and `git diff --check`; all pass.
 
 ## In Progress
-- User-managed local dev server visual verification at `/ui-preview`.
+- User-managed local dev server verification for Clerk sign-in/sign-up and `/app` protection.
 
 ## Next Up
-- Start `npm run dev` locally and inspect `http://localhost:3000/ui-preview` across light/dark compatibility and responsive viewports.
+- Run `npm run dev` locally and verify `/`, `/sign-in`, `/sign-up`, and `/app` with real Clerk environment variables.
+- After authentication runtime verification, continue to the next feature unit.
 
 ## Open Questions
 - None for the setup scope.
 
 ## Architecture Decisions
 - Keep the generated root-level `app/` directory and `@/*` import alias.
-- Keep setup limited to frontend foundation only; no auth, database, queue, worker, SEO, AI, PDF, or billing dependencies.
+- Use Clerk for identity and route protection without adding database user syncing in Feature 03.
+- Keep Feature 03 limited to authentication only; no database, scan, report, usage, billing, SEO, AI, queue, worker, or PDF logic.
 
 ## Session Notes
 - Next.js local docs reviewed for `next/font` and metadata usage before editing framework files.
@@ -44,3 +57,5 @@ Complete user-managed visual verification for the fixed `/ui-preview` route.
 - Feature 02 must remain UI-only: no Clerk, database, scan API, queue, worker, AI, PDF, Stripe, or real scan state.
 - Sandboxed `npm run build` failed on Google Fonts network access; rerunning with approved network access passed.
 - Sandboxed `npm run dev` could not bind to port 3000. The user will start the dev server locally.
+- Feature 03 sandboxed `npm run build` failed on Google Fonts network access; rerunning with approved network access passed.
+- Feature 03 sandboxed `npm run dev` could not bind to port 3000. The user said they will run the dev server locally.

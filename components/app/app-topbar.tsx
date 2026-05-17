@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { Menu } from "lucide-react";
 
@@ -16,11 +17,13 @@ import { cn } from "@/lib/utils";
 
 export interface AppTopbarProps {
   activeHref?: string;
+  accountControl?: React.ReactNode;
   userLabel?: string;
 }
 
 export function AppTopbar({
-  activeHref = "/dashboard",
+  activeHref = "/app",
+  accountControl,
   userLabel = "Workspace",
 }: AppTopbarProps) {
   return (
@@ -70,7 +73,12 @@ export function AppTopbar({
             scōre.
           </Link>
         </div>
-        <p className="truncate text-sm text-muted-foreground">{userLabel}</p>
+        <div className="flex min-w-0 items-center gap-3">
+          <p className="truncate text-sm text-muted-foreground">{userLabel}</p>
+          {accountControl ? (
+            <div className="shrink-0">{accountControl}</div>
+          ) : null}
+        </div>
       </div>
     </header>
   );
