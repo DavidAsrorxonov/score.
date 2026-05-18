@@ -215,7 +215,9 @@ shareable reports
 PDF export enabled or limited
 ```
 
-Usage enforcement should happen before scan creation. Failed validation should not consume usage. Once a scan is accepted and queued, usage should be recorded.
+Usage enforcement should happen before scan creation. Failed validation should not consume usage. Once a scan is accepted and queued, usage should be recorded as a `scan_accepted` usage event. Daily usage resets on UTC day boundaries in V1.
+
+Accepted scan usage events are idempotent per scan through a unique `(event_type, scan_id)` database index, so retrying accepted-scan usage recording for the same scan does not double-count quota.
 
 Plan checks should use centralized helpers. Agents should not hardcode plan limits in UI components or API handlers.
 

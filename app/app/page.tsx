@@ -6,6 +6,7 @@ import { PageContainer } from "@/components/app/page-container";
 import { PageHeader } from "@/components/app/page-header";
 import { MetricCard } from "@/components/shared/metric-card";
 import { UsageMeter } from "@/components/shared/usage-meter";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -15,6 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getDashboardData } from "@/lib/dashboard/get-dashboard-data";
+import { getDailyLimitReachedMessage } from "@/lib/usage/usage-limit-state";
 
 function getAverageScore(scans: Awaited<ReturnType<typeof getDashboardData>>["recentScans"]) {
   const scoredScans = scans.filter((scan) => scan.overallScore !== null);
@@ -29,6 +31,18 @@ function getAverageScore(scans: Awaited<ReturnType<typeof getDashboardData>>["re
   );
 
   return Math.round(total / scoredScans.length);
+}
+
+function getUsageDescription(data: Awaited<ReturnType<typeof getDashboardData>>) {
+  if (!data.usage.isLimited) {
+    return `${data.usage.usedToday} scans used today. This plan has no daily limit.`;
+  }
+
+  if (data.usage.isLimitReached) {
+    return "Daily limit reached.";
+  }
+
+  return `${data.usage.usedToday} of ${data.usage.dailyLimit} scans used today.`;
 }
 
 export default async function AppHomePage() {
@@ -59,17 +73,23 @@ export default async function AppHomePage() {
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <Card>
           <CardHeader>
-            <CardTitle>Free scan usage</CardTitle>
-            <CardDescription>
-              {data.usage.usedToday} of {data.usage.dailyLimit} scans used
-              today.
-            </CardDescription>
+            <CardTitle>Scan usage</CardTitle>
+            <CardDescription>{getUsageDescription(data)}</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <UsageMeter
               used={data.usage.usedToday}
               limit={data.usage.dailyLimit}
             />
+            {data.usage.isLimitReached ? (
+              <Alert>
+                <AlertTriangle className="size-4" aria-hidden="true" />
+                <AlertTitle>Daily limit reached</AlertTitle>
+                <AlertDescription>
+                  {getDailyLimitReachedMessage(data.usage)}
+                </AlertDescription>
+              </Alert>
+            ) : null}
           </CardContent>
         </Card>
         <MetricCard

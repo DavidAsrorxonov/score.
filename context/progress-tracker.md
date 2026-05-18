@@ -3,10 +3,10 @@
 Update this file whenever the current phase, active feature, or implementation state changes.
 
 ## Current Phase
-Authenticated app shell dashboard
+Usage limits
 
 ## Current Goal
-Feature 05 app shell dashboard implementation is complete; manual browser verification will be run by the user locally.
+Feature 06 usage limits implementation is complete; manual browser verification will be run by the user locally if needed.
 
 ## Completed
 - Read root agent instructions and required context files.
@@ -51,15 +51,22 @@ Feature 05 app shell dashboard implementation is complete; manual browser verifi
 - Added authenticated placeholder routes for `/app/new-scan`, `/app/reports`, `/app/usage`, and `/app/settings`.
 - Added route-level loading and error states for the authenticated app area.
 - Ran `npm run lint`, `npm run typecheck`, `npm run build`, and `git diff --check`; all pass.
+- Started Feature 06 usage limits.
+- Added centralized plan limit definitions for free, pro, and agency plans with the free daily scan limit defined once.
+- Added UTC daily boundary helpers, usage summary calculation, scan quota checking, and accepted-scan usage recording helpers.
+- Added idempotent accepted-scan usage protection with a unique `(event_type, scan_id)` index and generated/applied the Drizzle migration.
+- Updated dashboard, usage, and new scan placeholder surfaces to display real usage summary, remaining scans, unlimited-plan state, and daily-limit-reached messaging.
+- Added Vitest and focused usage-limit tests for free quota states, unlimited paid plans, non-negative remaining scans, and UTC day boundaries.
+- Ran `npm run db:generate`, `npm run db:migrate`, `npm run lint`, `npm run typecheck`, `npm run test`, `npm run build`, and `git diff --check`; all pass.
 
 ## In Progress
 - None.
 
 ## Next Up
-- Implement the next scan creation and usage workflow after the authenticated app foundation is verified.
+- Implement the future scan creation workflow that calls `checkScanUsageLimit` before accepting a scan and `recordScanAcceptedUsage` after scan creation.
 
 ## Open Questions
-- None for Feature 05.
+- None for Feature 06.
 
 ## Architecture Decisions
 - Keep the generated root-level `app/` directory and `@/*` import alias.
@@ -68,6 +75,8 @@ Feature 05 app shell dashboard implementation is complete; manual browser verifi
 - Use Drizzle ORM with the `postgres` client for the database foundation.
 - Keep database user syncing out of Feature 04; `users` maps to Clerk IDs but is not populated automatically yet.
 - Include `scan_events` in the initial schema for persisted scan lifecycle history and future progress/debug views.
+- Count daily scan usage with UTC day boundaries.
+- Prevent duplicate accepted-scan quota events with a unique `(event_type, scan_id)` usage event index.
 
 ## Session Notes
 - Next.js local docs reviewed for `next/font` and metadata usage before editing framework files.
@@ -83,3 +92,7 @@ Feature 05 app shell dashboard implementation is complete; manual browser verifi
 - Feature 04 sandboxed `npm run build` failed on Google Fonts network access; rerunning with approved network access passed.
 - Feature 05 sandboxed `npm run build` failed on Google Fonts network access; rerunning with approved network access passed.
 - Feature 05 sandboxed `npm run dev` failed with `listen EPERM` on port 3000. Elevated dev-server start was not approved, so browser/runtime verification remains pending.
+- Feature 06 sandboxed `npm install -D vitest` failed on registry DNS; rerunning with approved network access installed the test runner.
+- Feature 06 sandboxed `npm run db:migrate` did not complete database access; rerunning with approved database access applied the migration.
+- Feature 06 sandboxed `npm run build` failed on Google Fonts network access; rerunning with approved network access passed.
+- Feature 06 sandboxed `npm run dev` failed with `listen EPERM` on port 3000. Elevated dev-server start was not approved, so browser/runtime verification remains pending.

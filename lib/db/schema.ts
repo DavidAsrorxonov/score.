@@ -231,6 +231,10 @@ export const usageEvents = pgTable(
       table.createdAt,
     ),
     index("usage_events_scan_id_idx").on(table.scanId),
+    uniqueIndex("usage_events_event_type_scan_id_unique").on(
+      table.eventType,
+      table.scanId,
+    ),
   ],
 );
 

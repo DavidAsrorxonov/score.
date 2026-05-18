@@ -1,11 +1,12 @@
 import "server-only";
 
-import { and, count, desc, eq, gte, lt } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { plans, scans, usageEvents } from "@/lib/db/schema";
+import { scans } from "@/lib/db/schema";
 import type { PlanCode, ScanStatus } from "@/lib/db/types";
-import { FREE_DAILY_SCAN_LIMIT } from "@/lib/plans/constants";
+import { getUsageSummary } from "@/lib/usage/get-usage-summary";
+import type { UsageSummary } from "@/lib/usage/types";
 import { getOrCreateCurrentUser } from "@/lib/users/current-user";
 
 export interface DashboardScan {
@@ -26,49 +27,15 @@ export interface DashboardData {
     email: string | null;
     planCode: PlanCode;
   };
-  usage: {
-    usedToday: number;
-    dailyLimit: number;
-  };
+  usage: UsageSummary;
   recentScans: DashboardScan[];
-}
-
-function getTodayRange() {
-  const now = new Date();
-  const start = new Date(now);
-  start.setHours(0, 0, 0, 0);
-
-  const end = new Date(start);
-  end.setDate(end.getDate() + 1);
-
-  return { end, start };
 }
 
 export async function getDashboardData(): Promise<DashboardData> {
   const user = await getOrCreateCurrentUser();
-  const { end, start } = getTodayRange();
 
-  const [plan, usageCount, recentScans] = await Promise.all([
-    db
-      .select({
-        dailyScanLimit: plans.dailyScanLimit,
-      })
-      .from(plans)
-      .where(eq(plans.code, user.planCode))
-      .limit(1),
-    db
-      .select({
-        count: count(),
-      })
-      .from(usageEvents)
-      .where(
-        and(
-          eq(usageEvents.userId, user.id),
-          eq(usageEvents.eventType, "scan_accepted"),
-          gte(usageEvents.createdAt, start),
-          lt(usageEvents.createdAt, end)
-        )
-      ),
+  const [usage, recentScans] = await Promise.all([
+    getUsageSummary(user.id),
     db
       .select({
         id: scans.id,
@@ -93,10 +60,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       email: user.email,
       planCode: user.planCode,
     },
-    usage: {
-      usedToday: usageCount[0]?.count ?? 0,
-      dailyLimit: plan[0]?.dailyScanLimit ?? FREE_DAILY_SCAN_LIMIT,
-    },
+    usage,
     recentScans,
   };
 }
