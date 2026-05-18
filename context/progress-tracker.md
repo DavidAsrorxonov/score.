@@ -3,10 +3,10 @@
 Update this file whenever the current phase, active feature, or implementation state changes.
 
 ## Current Phase
-Authentication foundation
+Database schema foundation
 
 ## Current Goal
-Implement Clerk authentication and protect the authenticated `/app` route group.
+Implement Feature 04 database setup with Neon PostgreSQL, Drizzle ORM, core V1 schema tables, migrations, and database client helpers.
 
 ## Completed
 - Read root agent instructions and required context files.
@@ -34,21 +34,30 @@ Implement Clerk authentication and protect the authenticated `/app` route group.
 - Updated public navigation to show sign-in/sign-up actions for signed-out users and dashboard/account actions for signed-in users.
 - Moved authenticated navigation links into the `/app` route namespace.
 - Re-ran `npm run lint`, `npm run typecheck`, `npm run build`, and `git diff --check`; all pass.
+- Started Feature 04 database schema setup.
+- Installed `drizzle-orm`, `postgres`, `drizzle-kit`, and explicit `@next/env` support for ORM config environment loading.
+- Added Drizzle configuration, server-only database client helper, schema exports, inferred database types, and database package scripts.
+- Defined V1 database enums and tables for users, plans, subscriptions, usage events, scans, scan pages, SEO findings, report sections, share links, PDF exports, and scan events.
+- Generated the initial Drizzle migration in `drizzle/`.
+- Applied the generated migration to the configured database.
+- Ran `npm run db:generate`, `npm run db:migrate`, `npm run lint`, `npm run typecheck`, `npm run build`, and `git diff --check`; all pass.
 
 ## In Progress
-- User-managed local dev server verification for Clerk sign-in/sign-up and `/app` protection.
+- None.
 
 ## Next Up
-- Run `npm run dev` locally and verify `/`, `/sign-in`, `/sign-up`, and `/app` with real Clerk environment variables.
-- After authentication runtime verification, continue to the next feature unit.
+- Continue to the next feature unit after database schema review.
 
 ## Open Questions
-- None for the setup scope.
+- None for Feature 04.
 
 ## Architecture Decisions
 - Keep the generated root-level `app/` directory and `@/*` import alias.
 - Use Clerk for identity and route protection without adding database user syncing in Feature 03.
 - Keep Feature 03 limited to authentication only; no database, scan, report, usage, billing, SEO, AI, queue, worker, or PDF logic.
+- Use Drizzle ORM with the `postgres` client for the database foundation.
+- Keep database user syncing out of Feature 04; `users` maps to Clerk IDs but is not populated automatically yet.
+- Include `scan_events` in the initial schema for persisted scan lifecycle history and future progress/debug views.
 
 ## Session Notes
 - Next.js local docs reviewed for `next/font` and metadata usage before editing framework files.
@@ -59,3 +68,6 @@ Implement Clerk authentication and protect the authenticated `/app` route group.
 - Sandboxed `npm run dev` could not bind to port 3000. The user will start the dev server locally.
 - Feature 03 sandboxed `npm run build` failed on Google Fonts network access; rerunning with approved network access passed.
 - Feature 03 sandboxed `npm run dev` could not bind to port 3000. The user said they will run the dev server locally.
+- Feature 04 used local Next.js 16 docs for environment variables, server/client boundaries, and server-only data access before adding database modules.
+- Feature 04 sandboxed package install failed on registry DNS; rerunning with approved network access installed the required Drizzle packages.
+- Feature 04 sandboxed `npm run build` failed on Google Fonts network access; rerunning with approved network access passed.
