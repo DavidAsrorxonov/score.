@@ -8,11 +8,7 @@ export default function AuthenticatedAppLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <AppShell
-      accountControl={<UserButton />}
-      activeHref="/app"
-      userLabel="Account"
-    >
+    <AppShell accountControl={<UserButton />} userLabel="Account">
       {children}
     </AppShell>
   );

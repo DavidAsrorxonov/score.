@@ -3,10 +3,10 @@
 Update this file whenever the current phase, active feature, or implementation state changes.
 
 ## Current Phase
-Database schema foundation
+Authenticated app shell dashboard
 
 ## Current Goal
-Implement Feature 04 database setup with Neon PostgreSQL, Drizzle ORM, core V1 schema tables, migrations, and database client helpers.
+Feature 05 app shell dashboard implementation is complete; manual browser verification will be run by the user locally.
 
 ## Completed
 - Read root agent instructions and required context files.
@@ -41,15 +41,25 @@ Implement Feature 04 database setup with Neon PostgreSQL, Drizzle ORM, core V1 s
 - Generated the initial Drizzle migration in `drizzle/`.
 - Applied the generated migration to the configured database.
 - Ran `npm run db:generate`, `npm run db:migrate`, `npm run lint`, `npm run typecheck`, `npm run build`, and `git diff --check`; all pass.
+- Started Feature 05 app shell dashboard.
+- Added route-aware authenticated navigation highlighting for desktop and mobile app navigation.
+- Added lazy Clerk-to-database user upsert helper for the `users` table.
+- Added centralized free daily scan limit constants for display.
+- Added dashboard data helper that upserts the current user, reads user-scoped recent scans, and counts today's accepted scan usage events.
+- Replaced the `/app` placeholder with a real dashboard showing free usage, recent scan metrics, and user-owned recent scan history or an empty state.
+- Added reusable recent scans display with empty, completed, failed, in-progress, long-URL, desktop table, and mobile stacked-list states.
+- Added authenticated placeholder routes for `/app/new-scan`, `/app/reports`, `/app/usage`, and `/app/settings`.
+- Added route-level loading and error states for the authenticated app area.
+- Ran `npm run lint`, `npm run typecheck`, `npm run build`, and `git diff --check`; all pass.
 
 ## In Progress
 - None.
 
 ## Next Up
-- Continue to the next feature unit after database schema review.
+- Implement the next scan creation and usage workflow after the authenticated app foundation is verified.
 
 ## Open Questions
-- None for Feature 04.
+- None for Feature 05.
 
 ## Architecture Decisions
 - Keep the generated root-level `app/` directory and `@/*` import alias.
@@ -71,3 +81,5 @@ Implement Feature 04 database setup with Neon PostgreSQL, Drizzle ORM, core V1 s
 - Feature 04 used local Next.js 16 docs for environment variables, server/client boundaries, and server-only data access before adding database modules.
 - Feature 04 sandboxed package install failed on registry DNS; rerunning with approved network access installed the required Drizzle packages.
 - Feature 04 sandboxed `npm run build` failed on Google Fonts network access; rerunning with approved network access passed.
+- Feature 05 sandboxed `npm run build` failed on Google Fonts network access; rerunning with approved network access passed.
+- Feature 05 sandboxed `npm run dev` failed with `listen EPERM` on port 3000. Elevated dev-server start was not approved, so browser/runtime verification remains pending.
