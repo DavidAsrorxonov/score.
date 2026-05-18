@@ -3,10 +3,10 @@
 Update this file whenever the current phase, active feature, or implementation state changes.
 
 ## Current Phase
-Usage limits
+URL normalization and security
 
 ## Current Goal
-Feature 06 usage limits implementation is complete; manual browser verification will be run by the user locally if needed.
+Feature 07 URL normalization and security implementation is complete.
 
 ## Completed
 - Read root agent instructions and required context files.
@@ -58,15 +58,20 @@ Feature 06 usage limits implementation is complete; manual browser verification 
 - Updated dashboard, usage, and new scan placeholder surfaces to display real usage summary, remaining scans, unlimited-plan state, and daily-limit-reached messaging.
 - Added Vitest and focused usage-limit tests for free quota states, unlimited paid plans, non-negative remaining scans, and UTC day boundaries.
 - Ran `npm run db:generate`, `npm run db:migrate`, `npm run lint`, `npm run typecheck`, `npm run test`, `npm run build`, and `git diff --check`; all pass.
+- Started Feature 07 URL normalization and security.
+- Added structured URL safety types, centralized safe error messages, URL normalization, IP range safety checks, DNS resolution helpers, full URL safety validation, redirect target validation, and public `lib/url` exports.
+- Added focused Vitest coverage for accepted/rejected normalization, unsafe IP ranges, blocked hostnames, direct IP rejection, mocked DNS resolution safety, and redirect target validation.
+- Hardened IPv4-mapped IPv6 handling for both dotted and hex mapped representations.
+- Ran `npm run test`, `npm run lint`, `npm run typecheck`, `npm run build`, and `git diff --check`; all pass.
 
 ## In Progress
 - None.
 
 ## Next Up
-- Implement the future scan creation workflow that calls `checkScanUsageLimit` before accepting a scan and `recordScanAcceptedUsage` after scan creation.
+- Implement Feature 08 domain verification using `validateUrlSafety` before any network request and `validateRedirectUrl` before following redirects.
 
 ## Open Questions
-- None for Feature 06.
+- None for Feature 07.
 
 ## Architecture Decisions
 - Keep the generated root-level `app/` directory and `@/*` import alias.
@@ -77,6 +82,8 @@ Feature 06 usage limits implementation is complete; manual browser verification 
 - Include `scan_events` in the initial schema for persisted scan lifecycle history and future progress/debug views.
 - Count daily scan usage with UTC day boundaries.
 - Prevent duplicate accepted-scan quota events with a unique `(event_type, scan_id)` usage event index.
+- Reject direct IP URL targets for V1, including public IPs, because scōre. is domain/URL-oriented and direct IP scans add SSRF and SEO edge cases.
+- Require future scan creation, domain verification, and worker fetch code to call `validateUrlSafety` before fetching and `validateRedirectUrl` before following redirects.
 
 ## Session Notes
 - Next.js local docs reviewed for `next/font` and metadata usage before editing framework files.
@@ -96,3 +103,4 @@ Feature 06 usage limits implementation is complete; manual browser verification 
 - Feature 06 sandboxed `npm run db:migrate` did not complete database access; rerunning with approved database access applied the migration.
 - Feature 06 sandboxed `npm run build` failed on Google Fonts network access; rerunning with approved network access passed.
 - Feature 06 sandboxed `npm run dev` failed with `listen EPERM` on port 3000. Elevated dev-server start was not approved, so browser/runtime verification remains pending.
+- Feature 07 sandboxed `npm run build` failed on Google Fonts network access; rerunning with approved network access passed.
