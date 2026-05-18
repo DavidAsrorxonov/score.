@@ -106,7 +106,7 @@ const findings = [
 
 export default function UiPreviewPage() {
   return (
-    <AppShell activeHref="/reports" userLabel="Design preview">
+    <AppShell activeHref="/app/reports" userLabel="Design preview">
       <PageContainer className="space-y-8">
         <PageHeader
           eyebrow="Feature 02"

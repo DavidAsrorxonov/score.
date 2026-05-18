@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "usage_events_event_type_scan_id_unique" ON "usage_events" USING btree ("event_type","scan_id");

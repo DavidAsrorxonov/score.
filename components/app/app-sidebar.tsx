@@ -1,5 +1,8 @@
+"use client";
+
 import * as React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   FileText,
   Gauge,
@@ -18,12 +21,20 @@ export interface AppNavItem {
 }
 
 export const appNavItems: AppNavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "New Scan", href: "/scans/new", icon: Search },
-  { label: "Reports", href: "/reports", icon: FileText },
-  { label: "Usage", href: "/usage", icon: Gauge },
-  { label: "Settings", href: "/settings", icon: Settings },
+  { label: "Dashboard", href: "/app", icon: LayoutDashboard },
+  { label: "New Scan", href: "/app/new-scan", icon: Search },
+  { label: "Reports", href: "/app/reports", icon: FileText },
+  { label: "Usage", href: "/app/usage", icon: Gauge },
+  { label: "Settings", href: "/app/settings", icon: Settings },
 ];
+
+export function isAppNavItemActive(pathname: string, href: string) {
+  if (href === "/app") {
+    return pathname === href;
+  }
+
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 export interface AppSidebarProps {
   activeHref?: string;
@@ -32,10 +43,13 @@ export interface AppSidebarProps {
 }
 
 export function AppSidebar({
-  activeHref = "/dashboard",
+  activeHref,
   items = appNavItems,
   className,
 }: AppSidebarProps) {
+  const pathname = usePathname();
+  const currentPathname = activeHref ?? pathname;
+
   return (
     <aside
       className={cn(
@@ -55,7 +69,7 @@ export function AppSidebar({
         <nav aria-label="Primary" className="flex-1 space-y-1 px-3 py-4">
           {items.map((item) => {
             const Icon = item.icon;
-            const isActive = item.href === activeHref;
+            const isActive = isAppNavItemActive(currentPathname, item.href);
 
             return (
               <Link

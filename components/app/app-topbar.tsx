@@ -1,9 +1,14 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { Menu } from "lucide-react";
+import { usePathname } from "next/navigation";
 
-import { appNavItems } from "@/components/app/app-sidebar";
+import {
+  appNavItems,
+  isAppNavItemActive,
+} from "@/components/app/app-sidebar";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -16,13 +21,18 @@ import { cn } from "@/lib/utils";
 
 export interface AppTopbarProps {
   activeHref?: string;
+  accountControl?: React.ReactNode;
   userLabel?: string;
 }
 
 export function AppTopbar({
-  activeHref = "/dashboard",
+  activeHref,
+  accountControl,
   userLabel = "Workspace",
 }: AppTopbarProps) {
+  const pathname = usePathname();
+  const currentPathname = activeHref ?? pathname;
+
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background">
       <div className="flex h-14 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
@@ -46,7 +56,10 @@ export function AppTopbar({
               <nav aria-label="Mobile primary" className="space-y-1 p-3">
                 {appNavItems.map((item) => {
                   const Icon = item.icon;
-                  const isActive = item.href === activeHref;
+                  const isActive = isAppNavItemActive(
+                    currentPathname,
+                    item.href
+                  );
 
                   return (
                     <Link
@@ -70,7 +83,12 @@ export function AppTopbar({
             scōre.
           </Link>
         </div>
-        <p className="truncate text-sm text-muted-foreground">{userLabel}</p>
+        <div className="flex min-w-0 items-center gap-3">
+          <p className="truncate text-sm text-muted-foreground">{userLabel}</p>
+          {accountControl ? (
+            <div className="shrink-0">{accountControl}</div>
+          ) : null}
+        </div>
       </div>
     </header>
   );
