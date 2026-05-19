@@ -3,10 +3,10 @@
 Update this file whenever the current phase, active feature, or implementation state changes.
 
 ## Current Phase
-URL normalization and security
+Domain verification
 
 ## Current Goal
-Feature 07 URL normalization and security implementation is complete.
+Feature 08 domain verification implementation is complete.
 
 ## Completed
 - Read root agent instructions and required context files.
@@ -63,12 +63,17 @@ Feature 07 URL normalization and security implementation is complete.
 - Added focused Vitest coverage for accepted/rejected normalization, unsafe IP ranges, blocked hostnames, direct IP rejection, mocked DNS resolution safety, and redirect target validation.
 - Hardened IPv4-mapped IPv6 handling for both dotted and hex mapped representations.
 - Ran `npm run test`, `npm run lint`, `npm run typecheck`, `npm run build`, and `git diff --check`; all pass.
+- Started Feature 08 domain verification.
+- Added reusable verification types, safe user-facing verification messages, centralized verification config, manual-redirect HTTP request helper, and public `verifyTarget` service.
+- `verifyTarget` now runs `validateUrlSafety` before the first request, follows redirects manually, validates every redirect target with `validateRedirectUrl`, records redirect chains, validates final status/content type/content length, and returns structured success/failure metadata.
+- Added focused mocked verification tests for successful HTTPS/HTTP/bare-domain verification, URL safety failures, DNS failures, safe redirects, redirect limits, unsafe redirects, missing redirect locations, blocked/error statuses, non-HTML content, missing content type, oversized content length, timeout, network, SSL errors, and manual fetch redirect behavior.
+- Ran `npm run test`, `npm run lint`, `npm run typecheck`, `npm run build`, and `git diff --check`; all pass.
 
 ## In Progress
 - None.
 
 ## Next Up
-- Implement Feature 08 domain verification using `validateUrlSafety` before any network request and `validateRedirectUrl` before following redirects.
+- Implement future scan creation flow using `checkScanUsageLimit`, `verifyTarget`, scan record creation, idempotent usage recording, and queued background work.
 
 ## Open Questions
 - None for Feature 07.
@@ -84,6 +89,8 @@ Feature 07 URL normalization and security implementation is complete.
 - Prevent duplicate accepted-scan quota events with a unique `(event_type, scan_id)` usage event index.
 - Reject direct IP URL targets for V1, including public IPs, because scōre. is domain/URL-oriented and direct IP scans add SSRF and SEO edge cases.
 - Require future scan creation, domain verification, and worker fetch code to call `validateUrlSafety` before fetching and `validateRedirectUrl` before following redirects.
+- Keep domain verification separate from scan creation and page fetching: `verifyTarget` performs reachability preflight only and does not create scans, consume usage, enqueue jobs, parse HTML, or generate reports.
+- Verification accepts 2xx HTML/XHTML responses, rejects non-2xx final statuses for V1 analysis, maps blocked statuses such as 403/429 to `FETCH_BLOCKED`, and rejects missing/non-HTML content types.
 
 ## Session Notes
 - Next.js local docs reviewed for `next/font` and metadata usage before editing framework files.
@@ -104,3 +111,5 @@ Feature 07 URL normalization and security implementation is complete.
 - Feature 06 sandboxed `npm run build` failed on Google Fonts network access; rerunning with approved network access passed.
 - Feature 06 sandboxed `npm run dev` failed with `listen EPERM` on port 3000. Elevated dev-server start was not approved, so browser/runtime verification remains pending.
 - Feature 07 sandboxed `npm run build` failed on Google Fonts network access; rerunning with approved network access passed.
+- Feature 08 uses mocked HTTP requests and mocked DNS resolution in tests; no live external websites are required.
+- Feature 08 sandboxed `npm run build` failed on Google Fonts network access; rerunning with approved network access passed.
