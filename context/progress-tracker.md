@@ -3,10 +3,10 @@
 Update this file whenever the current phase, active feature, or implementation state changes.
 
 ## Current Phase
-Domain verification
+Scan creation API
 
 ## Current Goal
-Feature 08 domain verification implementation is complete.
+Feature 09 scan creation API and New Scan flow implementation is complete.
 
 ## Completed
 - Read root agent instructions and required context files.
@@ -68,15 +68,26 @@ Feature 08 domain verification implementation is complete.
 - `verifyTarget` now runs `validateUrlSafety` before the first request, follows redirects manually, validates every redirect target with `validateRedirectUrl`, records redirect chains, validates final status/content type/content length, and returns structured success/failure metadata.
 - Added focused mocked verification tests for successful HTTPS/HTTP/bare-domain verification, URL safety failures, DNS failures, safe redirects, redirect limits, unsafe redirects, missing redirect locations, blocked/error statuses, non-HTML content, missing content type, oversized content length, timeout, network, SSL errors, and manual fetch redirect behavior.
 - Ran `npm run test`, `npm run lint`, `npm run typecheck`, `npm run build`, and `git diff --check`; all pass.
+- Started Feature 09 scan creation API.
+- Added `zod` for server-side scan creation request validation.
+- Added scan creation types, centralized scan errors, authenticated scan creation service, and `POST /api/scans`.
+- Scan creation now checks usage before verification, verifies targets through `verifyTarget`, re-checks usage inside the database transaction, creates queued scan rows, and records `scan_accepted` usage events atomically.
+- Re-exported the verification message helper for scan creation error mapping.
+- Replaced the New Scan placeholder with a working client form that calls `/api/scans`, handles validation/verification/quota errors, disables submission when the daily limit is reached, and redirects accepted scans to `/app/scans/[scanId]`.
+- Added an ownership-checked scan status placeholder route and panel for accepted queued scans.
+- Updated recent scan actions to link to scan status pages.
+- Added focused scan creation service tests for unsupported scan types, quota blocking, verification failures, transactional scan/usage creation, and the in-transaction usage re-check.
+- Added Vitest `@/*` alias configuration for tests that import application modules.
+- Ran `npm run test`, `npm run lint`, `npm run typecheck`, `npm run build`, and `git diff --check`; all pass.
 
 ## In Progress
 - None.
 
 ## Next Up
-- Implement future scan creation flow using `checkScanUsageLimit`, `verifyTarget`, scan record creation, idempotent usage recording, and queued background work.
+- Implement queue setup for accepted scans in Feature 10 without processing scans inside the API request.
 
 ## Open Questions
-- None for Feature 07.
+- None for Feature 09.
 
 ## Architecture Decisions
 - Keep the generated root-level `app/` directory and `@/*` import alias.
@@ -91,6 +102,7 @@ Feature 08 domain verification implementation is complete.
 - Require future scan creation, domain verification, and worker fetch code to call `validateUrlSafety` before fetching and `validateRedirectUrl` before following redirects.
 - Keep domain verification separate from scan creation and page fetching: `verifyTarget` performs reachability preflight only and does not create scans, consume usage, enqueue jobs, parse HTML, or generate reports.
 - Verification accepts 2xx HTML/XHTML responses, rejects non-2xx final statuses for V1 analysis, maps blocked statuses such as 403/429 to `FETCH_BLOCKED`, and rejects missing/non-HTML content types.
+- Keep Feature 09 scan acceptance queue-free: accepted scans remain in `queued` status until Feature 10 adds real queue integration.
 
 ## Session Notes
 - Next.js local docs reviewed for `next/font` and metadata usage before editing framework files.
@@ -113,3 +125,7 @@ Feature 08 domain verification implementation is complete.
 - Feature 07 sandboxed `npm run build` failed on Google Fonts network access; rerunning with approved network access passed.
 - Feature 08 uses mocked HTTP requests and mocked DNS resolution in tests; no live external websites are required.
 - Feature 08 sandboxed `npm run build` failed on Google Fonts network access; rerunning with approved network access passed.
+- Feature 09 sandboxed `npm install zod` failed on registry DNS; rerunning with approved network access completed successfully.
+- Feature 09 sandboxed `npm run build` failed on Google Fonts network access; rerunning with approved network access passed.
+- Feature 09 sandboxed `npm run dev` failed with `listen EPERM` on port 3000. Elevated dev-server start was not approved, so browser/runtime verification remains pending.
+- Scan creation API issue follow-up: Clerk proxy matcher now includes `/api/scans` so `auth()` in `app/api/scans/route.ts` has Clerk middleware context. The route still returns its own JSON `401` for unauthenticated API requests because `auth.protect()` remains limited to `/app`.

@@ -113,7 +113,7 @@ export function RecentScans({
                 <TableCell>{formatScanDate(scan.createdAt)}</TableCell>
                 <TableCell className="text-right">
                   <Button asChild variant="outline" size="sm">
-                    <Link href="/app/reports">
+                    <Link href={`/app/scans/${scan.id}`}>
                       <FileText className="size-3.5" aria-hidden="true" />
                       {getScanActionLabel(scan.status)}
                     </Link>
@@ -152,7 +152,7 @@ export function RecentScans({
               <span>{formatScanDate(scan.createdAt)}</span>
             </div>
             <Button asChild variant="outline" size="sm">
-              <Link href="/app/reports">
+              <Link href={`/app/scans/${scan.id}`}>
                 <FileText className="size-3.5" aria-hidden="true" />
                 {getScanActionLabel(scan.status)}
               </Link>
