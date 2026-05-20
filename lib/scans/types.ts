@@ -26,6 +26,7 @@ export type CreateScanErrorCode =
   | "UNSUPPORTED_SCAN_TYPE"
   | "DAILY_SCAN_LIMIT_REACHED"
   | "TARGET_VERIFICATION_FAILED"
+  | "QUEUE_ENQUEUE_FAILED"
   | "SCAN_CREATION_FAILED"
   | VerificationErrorCode;
 
@@ -37,4 +38,3 @@ export interface CreateScanFailure {
 }
 
 export type CreateScanResult = CreateScanSuccess | CreateScanFailure;
-

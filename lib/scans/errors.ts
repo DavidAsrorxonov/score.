@@ -10,6 +10,8 @@ export const SCAN_CREATION_MESSAGES = {
   DAILY_SCAN_LIMIT_REACHED:
     "You've used all 5 free scans for today. Your limit resets at midnight UTC.",
   TARGET_VERIFICATION_FAILED: "The website could not be verified.",
+  QUEUE_ENQUEUE_FAILED:
+    "The scan was created, but processing could not be started. Please try again later.",
   SCAN_CREATION_FAILED: "The scan could not be created. Please try again.",
 } as const satisfies Partial<Record<CreateScanErrorCode, string>>;
 
@@ -68,6 +70,8 @@ export function getCreateScanStatus(code: CreateScanErrorCode): number {
     case "VERIFICATION_FAILED":
     case "TARGET_VERIFICATION_FAILED":
       return 422;
+    case "QUEUE_ENQUEUE_FAILED":
+      return 503;
     case "SCAN_CREATION_FAILED":
       return 500;
   }
@@ -84,4 +88,3 @@ export function createScanFailure(
     status: getCreateScanStatus(code),
   };
 }
-

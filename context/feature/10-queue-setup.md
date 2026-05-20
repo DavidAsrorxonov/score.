@@ -149,7 +149,7 @@ Recommended constants:
 
 ```ts
 export const QUEUE_NAMES = {
-  scans: "score:scans",
+  scans: "score-scans",
 } as const;
 
 export const JOB_NAMES = {
@@ -330,7 +330,7 @@ export async function enqueueScanRun(scanId: string) {
     JOB_NAMES.runScan,
     { scanId },
     {
-      jobId: `scan.run:${scanId}`,
+      jobId: `scan.run-${scanId}`,
     },
   );
 }
