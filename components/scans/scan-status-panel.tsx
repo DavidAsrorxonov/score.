@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { AlertTriangle } from "lucide-react";
 
 import { StatusBadge } from "@/components/shared/status-badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -25,6 +27,8 @@ export interface ScanStatusPanelProps {
 }
 
 export function ScanStatusPanel({ scan }: ScanStatusPanelProps) {
+  const isFailed = scan.status === "failed";
+
   return (
     <Card>
       <CardHeader>
@@ -32,7 +36,9 @@ export function ScanStatusPanel({ scan }: ScanStatusPanelProps) {
           <div className="space-y-1.5">
             <CardTitle>Scan status</CardTitle>
             <CardDescription>
-              This scan has been accepted and is waiting for processing.
+              {isFailed
+                ? "This scan could not be processed."
+                : "This scan has been accepted and is waiting for processing."}
             </CardDescription>
           </div>
           <StatusBadge status={scan.status} />
@@ -90,10 +96,20 @@ export function ScanStatusPanel({ scan }: ScanStatusPanelProps) {
           </div>
         </dl>
 
-        <div className="rounded-lg border border-border bg-muted p-4 text-sm text-muted-foreground">
-          Queue and worker setup comes next, so no SEO findings or report data
-          are generated for this scan yet.
-        </div>
+        {isFailed ? (
+          <Alert variant="destructive">
+            <AlertTriangle className="size-4" aria-hidden="true" />
+            <AlertTitle>Scan failed</AlertTitle>
+            <AlertDescription>
+              {scan.errorMessage ?? "The scan failed. Please try again later."}
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <div className="rounded-lg border border-border bg-muted p-4 text-sm text-muted-foreground">
+            This scan is queued for background processing. No SEO findings or
+            report data have been generated yet.
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-2">
           <Button asChild>
@@ -107,4 +123,3 @@ export function ScanStatusPanel({ scan }: ScanStatusPanelProps) {
     </Card>
   );
 }
-

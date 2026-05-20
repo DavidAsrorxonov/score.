@@ -3,10 +3,10 @@
 Update this file whenever the current phase, active feature, or implementation state changes.
 
 ## Current Phase
-Scan creation API
+Feature 10 queue setup complete
 
 ## Current Goal
-Feature 09 scan creation API and New Scan flow implementation is complete.
+BullMQ/Redis queue setup is complete; accepted scans enqueue `scan.run` jobs after database commit without processing scans in the API request.
 
 ## Completed
 - Read root agent instructions and required context files.
@@ -79,15 +79,24 @@ Feature 09 scan creation API and New Scan flow implementation is complete.
 - Added focused scan creation service tests for unsupported scan types, quota blocking, verification failures, transactional scan/usage creation, and the in-transaction usage re-check.
 - Added Vitest `@/*` alias configuration for tests that import application modules.
 - Ran `npm run test`, `npm run lint`, `npm run typecheck`, `npm run build`, and `git diff --check`; all pass.
+- Completed the select UI tweak from `context/tweaks/select-ui.md` by ensuring every local `@/components/ui/select` usage sets `SelectContent position="popper"` and wraps options in `SelectGroup`.
+- Started Feature 10 queue setup.
+- Installed `bullmq` and `ioredis`.
+- Added server-only queue configuration, Redis connection helper, centralized queue/job names, scan queue singleton, enqueue helper, queue health helper, and public queue exports.
+- Updated scan creation to enqueue accepted scans after the database transaction commits, using deterministic `scan.run-{scanId}` job IDs and `{ scanId }` payloads only.
+- Added `QUEUE_ENQUEUE_FAILED` handling that marks the created scan as failed with a user-safe message when enqueueing fails.
+- Updated the scan status placeholder to show persisted failed-scan messages.
+- Added focused tests for scan enqueue helper behavior and scan creation enqueue/failure paths.
+- Ran `npm run test`, `npm run lint`, `npm run typecheck`, `npm run build`, and `git diff --check`; all pass.
 
 ## In Progress
 - None.
 
 ## Next Up
-- Implement queue setup for accepted scans in Feature 10 without processing scans inside the API request.
+- Implement worker setup in Feature 11 to process queued `scan.run` jobs.
 
 ## Open Questions
-- None for Feature 09.
+- None for Feature 10.
 
 ## Architecture Decisions
 - Keep the generated root-level `app/` directory and `@/*` import alias.
@@ -103,6 +112,8 @@ Feature 09 scan creation API and New Scan flow implementation is complete.
 - Keep domain verification separate from scan creation and page fetching: `verifyTarget` performs reachability preflight only and does not create scans, consume usage, enqueue jobs, parse HTML, or generate reports.
 - Verification accepts 2xx HTML/XHTML responses, rejects non-2xx final statuses for V1 analysis, maps blocked statuses such as 403/429 to `FETCH_BLOCKED`, and rejects missing/non-HTML content types.
 - Keep Feature 09 scan acceptance queue-free: accepted scans remain in `queued` status until Feature 10 adds real queue integration.
+- Use BullMQ with Redis for background job coordination, keep queue modules server-only, create Redis/queue connections lazily, keep BullMQ queue names and custom job IDs free of `:`, and keep V1 scan jobs limited to `{ scanId }` payloads.
+- Enqueue accepted scans only after the scan/usage transaction commits; if enqueueing fails, mark the scan `failed` with `QUEUE_ENQUEUE_FAILED` while leaving accepted usage intact.
 
 ## Session Notes
 - Next.js local docs reviewed for `next/font` and metadata usage before editing framework files.
@@ -129,3 +140,8 @@ Feature 09 scan creation API and New Scan flow implementation is complete.
 - Feature 09 sandboxed `npm run build` failed on Google Fonts network access; rerunning with approved network access passed.
 - Feature 09 sandboxed `npm run dev` failed with `listen EPERM` on port 3000. Elevated dev-server start was not approved, so browser/runtime verification remains pending.
 - Scan creation API issue follow-up: Clerk proxy matcher now includes `/api/scans` so `auth()` in `app/api/scans/route.ts` has Clerk middleware context. The route still returns its own JSON `401` for unauthenticated API requests because `auth.protect()` remains limited to `/app`.
+- Select UI tweak: all local `@/components/ui/select` usages now render `SelectContent` with `position="popper"` and wrap `SelectItem` entries in `SelectGroup`; functionality and flow behavior were left unchanged.
+- Feature 10 sandboxed `npm install bullmq ioredis` stalled and then failed with registry DNS resolution; rerunning with approved network access completed successfully.
+- Feature 10 sandboxed `npm run build` failed on Google Fonts network access; rerunning with approved network access passed.
+- Live Redis enqueue verification was not run because no Redis service was started or requested in this task.
+- Queue setup issue follow-up: BullMQ rejected `:` in queue names and custom job IDs, so queue name uses `score-scans` and scan job IDs now use `scan.run-{scanId}`.

@@ -92,6 +92,9 @@ function blockedUsage() {
 }
 
 function createDatabase() {
+  const where = vi.fn().mockResolvedValue(undefined);
+  const set = vi.fn(() => ({ where }));
+  const update = vi.fn(() => ({ set }));
   const returning = vi.fn().mockResolvedValue([
     {
       id: "scan-id",
@@ -108,9 +111,15 @@ function createDatabase() {
   const transaction = vi.fn(async (callback) => callback(tx));
 
   return {
-    database: { transaction } as unknown as CreateScanDependencies["database"],
+    database: {
+      transaction,
+      update,
+    } as unknown as CreateScanDependencies["database"],
     transaction,
     tx,
+    update,
+    set,
+    where,
     insert,
     values,
     returning,
@@ -126,6 +135,7 @@ function baseDependencies(): CreateScanDependencies {
     checkUsage: vi.fn().mockResolvedValue(allowedUsage()),
     recordUsage: vi.fn().mockResolvedValue({ id: "usage-id" }),
     verify: vi.fn().mockResolvedValue(successfulVerification),
+    enqueueScan: vi.fn().mockResolvedValue({ id: "scan.run-scan-id" }),
   };
 }
 
@@ -151,6 +161,7 @@ describe("createScanForCurrentUser", () => {
       status: 403,
     });
     expect(dependencies.checkUsage).not.toHaveBeenCalled();
+    expect(dependencies.enqueueScan).not.toHaveBeenCalled();
   });
 
   it("blocks users at the daily limit without verifying or writing", async () => {
@@ -172,6 +183,7 @@ describe("createScanForCurrentUser", () => {
       status: 409,
     });
     expect(dependencies.verify).not.toHaveBeenCalled();
+    expect(dependencies.enqueueScan).not.toHaveBeenCalled();
     expect(database.transaction).not.toHaveBeenCalled();
   });
 
@@ -195,13 +207,16 @@ describe("createScanForCurrentUser", () => {
     });
     expect(database.transaction).not.toHaveBeenCalled();
     expect(dependencies.recordUsage).not.toHaveBeenCalled();
+    expect(dependencies.enqueueScan).not.toHaveBeenCalled();
   });
 
   it("creates the queued scan and accepted usage inside one transaction", async () => {
     const database = createDatabase();
+    const enqueueScan = vi.fn().mockResolvedValue({ id: "scan.run-scan-id" });
     const dependencies = {
       ...baseDependencies(),
       database: database.database,
+      enqueueScan,
     };
 
     const result = await createScanForCurrentUser(
@@ -241,6 +256,10 @@ describe("createScanForCurrentUser", () => {
       }),
       database.tx,
     );
+    expect(enqueueScan).toHaveBeenCalledWith("scan-id");
+    expect(database.transaction.mock.invocationCallOrder[0]).toBeLessThan(
+      enqueueScan.mock.invocationCallOrder[0],
+    );
   });
 
   it("re-checks usage inside the transaction before inserting", async () => {
@@ -266,6 +285,35 @@ describe("createScanForCurrentUser", () => {
     expect(dependencies.checkUsage).toHaveBeenCalledTimes(2);
     expect(database.insert).not.toHaveBeenCalled();
     expect(dependencies.recordUsage).not.toHaveBeenCalled();
+    expect(dependencies.enqueueScan).not.toHaveBeenCalled();
+  });
+
+  it("marks the scan failed when queue enqueue fails after commit", async () => {
+    const database = createDatabase();
+    const dependencies = {
+      ...baseDependencies(),
+      database: database.database,
+      enqueueScan: vi.fn().mockRejectedValue(new Error("Redis unavailable")),
+    };
+
+    const result = await createScanForCurrentUser(
+      { input: "example.com", scanType: "homepage" },
+      dependencies,
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      code: "QUEUE_ENQUEUE_FAILED",
+      status: 503,
+    });
+    expect(dependencies.recordUsage).toHaveBeenCalled();
+    expect(dependencies.enqueueScan).toHaveBeenCalledWith("scan-id");
+    expect(database.update).toHaveBeenCalled();
+    expect(database.set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "failed",
+        errorCode: "QUEUE_ENQUEUE_FAILED",
+      }),
+    );
   });
 });
-
