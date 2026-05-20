@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -143,9 +144,11 @@ export function ScanForm({ usage }: ScanFormProps) {
             <SelectTrigger id={scanTypeId} className="w-full max-w-xs">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="single_url">Specific URL</SelectItem>
-              <SelectItem value="homepage">Homepage</SelectItem>
+            <SelectContent position="popper">
+              <SelectGroup>
+                <SelectItem value="single_url">Specific URL</SelectItem>
+                <SelectItem value="homepage">Homepage</SelectItem>
+              </SelectGroup>
             </SelectContent>
           </Select>
         </div>

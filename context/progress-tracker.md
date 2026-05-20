@@ -3,10 +3,10 @@
 Update this file whenever the current phase, active feature, or implementation state changes.
 
 ## Current Phase
-Scan creation API
+UI tweak follow-up
 
 ## Current Goal
-Feature 09 scan creation API and New Scan flow implementation is complete.
+Select dropdown spacing tweak from `context/tweaks/select-ui.md` is complete.
 
 ## Completed
 - Read root agent instructions and required context files.
@@ -79,6 +79,7 @@ Feature 09 scan creation API and New Scan flow implementation is complete.
 - Added focused scan creation service tests for unsupported scan types, quota blocking, verification failures, transactional scan/usage creation, and the in-transaction usage re-check.
 - Added Vitest `@/*` alias configuration for tests that import application modules.
 - Ran `npm run test`, `npm run lint`, `npm run typecheck`, `npm run build`, and `git diff --check`; all pass.
+- Completed the select UI tweak from `context/tweaks/select-ui.md` by ensuring every local `@/components/ui/select` usage sets `SelectContent position="popper"` and wraps options in `SelectGroup`.
 
 ## In Progress
 - None.
@@ -129,3 +130,4 @@ Feature 09 scan creation API and New Scan flow implementation is complete.
 - Feature 09 sandboxed `npm run build` failed on Google Fonts network access; rerunning with approved network access passed.
 - Feature 09 sandboxed `npm run dev` failed with `listen EPERM` on port 3000. Elevated dev-server start was not approved, so browser/runtime verification remains pending.
 - Scan creation API issue follow-up: Clerk proxy matcher now includes `/api/scans` so `auth()` in `app/api/scans/route.ts` has Clerk middleware context. The route still returns its own JSON `401` for unauthenticated API requests because `auth.protect()` remains limited to `/app`.
+- Select UI tweak: all local `@/components/ui/select` usages now render `SelectContent` with `position="popper"` and wrap `SelectItem` entries in `SelectGroup`; functionality and flow behavior were left unchanged.

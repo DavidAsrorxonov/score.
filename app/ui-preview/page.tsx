@@ -60,6 +60,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -155,10 +156,12 @@ export default function UiPreviewPage() {
                   <SelectTrigger id="preview-select" className="w-full">
                     <SelectValue placeholder="Select area" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="metadata">Metadata</SelectItem>
-                    <SelectItem value="technical">Technical SEO</SelectItem>
-                    <SelectItem value="content">Content</SelectItem>
+                  <SelectContent position="popper">
+                    <SelectGroup>
+                      <SelectItem value="metadata">Metadata</SelectItem>
+                      <SelectItem value="technical">Technical SEO</SelectItem>
+                      <SelectItem value="content">Content</SelectItem>
+                    </SelectGroup>
                   </SelectContent>
                 </Select>
               </div>
