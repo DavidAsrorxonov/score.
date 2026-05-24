@@ -3,10 +3,10 @@
 Update this file whenever the current phase, active feature, or implementation state changes.
 
 ## Current Phase
-Feature 10 queue setup complete
+Feature 11 worker setup complete
 
 ## Current Goal
-BullMQ/Redis queue setup is complete; accepted scans enqueue `scan.run` jobs after database commit without processing scans in the API request.
+Worker setup is complete; queued `scan.run` jobs can be consumed by a separate BullMQ worker that updates scan lifecycle status and stops at the explicit temporary processing boundary.
 
 ## Completed
 - Read root agent instructions and required context files.
@@ -88,15 +88,29 @@ BullMQ/Redis queue setup is complete; accepted scans enqueue `scan.run` jobs aft
 - Updated the scan status placeholder to show persisted failed-scan messages.
 - Added focused tests for scan enqueue helper behavior and scan creation enqueue/failure paths.
 - Ran `npm run test`, `npm run lint`, `npm run typecheck`, `npm run build`, and `git diff --check`; all pass.
+- Started Feature 11 worker setup.
+- Installed `tsx` for standalone worker execution.
+- Added worker scripts for `npm run worker` and `npm run worker:dev` using Node's `react-server` condition so existing server-only modules can be imported outside the Next.js runtime.
+- Added scan status helpers that update scan timestamps, clear active-status errors, mark completed/failed timestamps, and record scan lifecycle events.
+- Added worker-specific scan error codes and user-safe processing messages.
+- Added the worker configuration, scan worker factory, `scan.run` handler, lifecycle shutdown helper, and worker entrypoint.
+- `scan.run` jobs now validate payloads, load scans by ID, no-op completed and failed scans, transition queued scans through `validating` and `fetching`, and mark scans failed with `PROCESSING_NOT_IMPLEMENTED` instead of faking reports.
+- Added README local development instructions for running the worker separately with `DATABASE_URL` and `REDIS_URL`.
+- Added focused worker handler tests for invalid payloads, missing scans, completed/failed no-ops, queued scan transitions, retry recovery from `validating`, and unexpected error failure marking.
+- Ran `npm run test -- worker/__tests__/run-scan.test.ts`, `npm run typecheck`, `npm run test`, `npm run lint`, `npm run build`, and `git diff --check`; all pass.
+- Fixed the worker entrypoint after local `npm run worker:dev` exposed a `tsx` CommonJS transform limitation with top-level `await`; the entrypoint now uses an async `main()` startup path.
+- Re-ran `npm run test -- worker/__tests__/run-scan.test.ts` and `npm run typecheck`; both pass.
+- Fixed worker startup after local execution exposed that `node --conditions react-server` breaks normal React/Next imports; worker scripts now use a small Node preload hook to stub only `server-only`, and the scan handler imports worker-safe scan modules directly instead of the scans barrel.
+- Re-ran `npm run test -- worker/__tests__/run-scan.test.ts`, `npm run typecheck`, `npm run lint`, `npm run build`, and `git diff --check`; all pass.
 
 ## In Progress
 - None.
 
 ## Next Up
-- Implement worker setup in Feature 11 to process queued `scan.run` jobs.
+- Implement the page fetcher in the next feature unit.
 
 ## Open Questions
-- None for Feature 10.
+- None for Feature 11.
 
 ## Architecture Decisions
 - Keep the generated root-level `app/` directory and `@/*` import alias.
@@ -114,6 +128,8 @@ BullMQ/Redis queue setup is complete; accepted scans enqueue `scan.run` jobs aft
 - Keep Feature 09 scan acceptance queue-free: accepted scans remain in `queued` status until Feature 10 adds real queue integration.
 - Use BullMQ with Redis for background job coordination, keep queue modules server-only, create Redis/queue connections lazily, keep BullMQ queue names and custom job IDs free of `:`, and keep V1 scan jobs limited to `{ scanId }` payloads.
 - Enqueue accepted scans only after the scan/usage transaction commits; if enqueueing fails, mark the scan `failed` with `QUEUE_ENQUEUE_FAILED` while leaving accepted usage intact.
+- Run the worker as a separate Node process, not inside Next.js; worker scripts use `node --conditions react-server --import tsx` so the existing `server-only` markers resolve correctly during local worker execution.
+- Keep Feature 11's processing boundary explicit by marking picked-up scans `failed` with `PROCESSING_NOT_IMPLEMENTED`; later fetcher/analyzer tasks must replace this rather than fabricating completed report data.
 
 ## Session Notes
 - Next.js local docs reviewed for `next/font` and metadata usage before editing framework files.
@@ -145,3 +161,9 @@ BullMQ/Redis queue setup is complete; accepted scans enqueue `scan.run` jobs aft
 - Feature 10 sandboxed `npm run build` failed on Google Fonts network access; rerunning with approved network access passed.
 - Live Redis enqueue verification was not run because no Redis service was started or requested in this task.
 - Queue setup issue follow-up: BullMQ rejected `:` in queue names and custom job IDs, so queue name uses `score-scans` and scan job IDs now use `scan.run-{scanId}`.
+- Feature 11 sandboxed `npm install -D tsx` failed on registry DNS; rerunning with approved network access completed successfully.
+- Feature 11 sandboxed `npm run build` failed on Google Fonts network access; rerunning with approved network access passed.
+- Live worker execution with Redis was not run because no Redis service was started or requested in this task.
+- Worker dev follow-up: local `npm run worker:dev` initially failed because `tsx` transformed top-level `await` as CommonJS; switching to an async `main()` startup fixed that class of startup error.
+- Worker dev follow-up: local `npm run worker:dev` then failed because `node --conditions react-server` changed React's export condition and broke Next internals. The worker script now uses a preload hook for `server-only` instead of the global `react-server` condition.
+- Feature 11 follow-up sandboxed `npm run build` failed on Google Fonts network access; rerunning with approved network access passed.

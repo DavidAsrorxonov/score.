@@ -15,6 +15,23 @@ export const SCAN_CREATION_MESSAGES = {
   SCAN_CREATION_FAILED: "The scan could not be created. Please try again.",
 } as const satisfies Partial<Record<CreateScanErrorCode, string>>;
 
+export type WorkerScanErrorCode =
+  | "SCAN_NOT_FOUND"
+  | "INVALID_JOB_PAYLOAD"
+  | "PROCESSING_NOT_IMPLEMENTED"
+  | "WORKER_PROCESSING_FAILED";
+
+export const SCAN_PROCESSING_MESSAGES = {
+  SCAN_NOT_FOUND: "The scan could not be found.",
+  INVALID_JOB_PAYLOAD: "The scan job payload is invalid.",
+  PROCESSING_NOT_IMPLEMENTED: "Scan processing is not implemented yet.",
+  WORKER_PROCESSING_FAILED: "The scan could not be processed.",
+} as const satisfies Record<WorkerScanErrorCode, string>;
+
+export function getScanProcessingMessage(code: WorkerScanErrorCode): string {
+  return SCAN_PROCESSING_MESSAGES[code];
+}
+
 const VERIFICATION_ERROR_CODES = new Set<VerificationErrorCode>([
   "INVALID_URL",
   "UNSAFE_URL",
