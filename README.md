@@ -16,6 +16,14 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+Start the background scan worker in a separate terminal when testing queued scans:
+
+```bash
+npm run worker:dev
+```
+
+The worker requires `DATABASE_URL` and `REDIS_URL`. Feature 11 stops at the temporary processing boundary, so picked-up scans move through early statuses and end with `PROCESSING_NOT_IMPLEMENTED` until the page fetcher and analyzer are implemented.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
