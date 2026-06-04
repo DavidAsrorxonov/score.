@@ -16,6 +16,11 @@ import {
   type WorkerScanErrorCode,
 } from "@/lib/scans/errors";
 import { markScanFailed, updateScanStatus } from "@/lib/scans/status";
+import {
+  extractPageSeo,
+  persistPageExtraction,
+  type ExtractedPageSeo,
+} from "@/lib/seo";
 
 const runScanJobSchema = z.object({
   scanId: z.string().trim().min(1),
@@ -40,7 +45,9 @@ interface RunScanJobDependencies {
   saveFetchedPage?: (
     scanId: string,
     fetchResult: FetchPageSuccess,
-  ) => Promise<void>;
+  ) => Promise<{ pageId?: string }>;
+  extractSeo?: typeof extractPageSeo;
+  saveExtraction?: typeof persistPageExtraction;
 }
 
 interface RunScanJobResult {
@@ -90,10 +97,10 @@ async function markUnexpectedFailure(
 async function saveFetchedScanPageMetadata(
   scanId: string,
   fetchResult: FetchPageSuccess,
-) {
+): Promise<{ pageId?: string }> {
   const now = new Date();
 
-  await db
+  const [page] = await db
     .insert(scanPages)
     .values({
       scanId,
@@ -143,7 +150,12 @@ async function saveFetchedScanPageMetadata(
         },
         updatedAt: now,
       },
-    });
+    })
+    .returning({ id: scanPages.id });
+
+  return {
+    pageId: page?.id,
+  };
 }
 
 function getScanFetchInput(scan: LoadedScan): string {
@@ -189,6 +201,22 @@ function buildFetchSuccessMetadata(fetchResult: FetchPageSuccess) {
   };
 }
 
+function buildExtractionSuccessMetadata(extraction: ExtractedPageSeo) {
+  return {
+    title: extraction.title,
+    metaDescriptionPresent: extraction.metaDescription !== null,
+    canonicalUrl: extraction.canonicalUrl,
+    h1Count: extraction.h1.length,
+    headingCount: extraction.headings.length,
+    internalLinkCount: extraction.internalLinks.length,
+    externalLinkCount: extraction.externalLinks.length,
+    imageCount: extraction.images.length,
+    imagesMissingAltCount: extraction.imagesMissingAltCount,
+    schemaTypes: extraction.schemaTypes,
+    wordCount: extraction.wordCount,
+  };
+}
+
 export async function handleRunScanJob(
   job: Job<unknown>,
   dependencies: RunScanJobDependencies = {},
@@ -209,6 +237,8 @@ export async function handleRunScanJob(
   const fetchPage = dependencies.fetchPage ?? fetchPageHtml;
   const saveFetchedPage =
     dependencies.saveFetchedPage ?? saveFetchedScanPageMetadata;
+  const extractSeo = dependencies.extractSeo ?? extractPageSeo;
+  const saveExtraction = dependencies.saveExtraction ?? persistPageExtraction;
 
   try {
     const scan = await loadScan(scanId);
@@ -282,24 +312,67 @@ export async function handleRunScanJob(
         };
       }
 
-      await saveFetchedPage(scanId, fetchResult);
+      const fetchedPage = await saveFetchedPage(scanId, fetchResult);
 
       await updateStatus({
         scanId,
         status: "analyzing",
-        message: "Page HTML fetched; SEO extraction is the next processing step.",
+        message: "Page HTML fetched; SEO extraction started.",
         metadata: {
           jobId: job.id,
           jobName: job.name,
           fetch: buildFetchSuccessMetadata(fetchResult),
         },
       });
+
+      try {
+        const extraction = extractSeo({
+          html: fetchResult.html,
+          url: fetchResult.normalizedUrl,
+          finalUrl: fetchResult.finalUrl,
+        });
+
+        await saveExtraction({
+          scanId,
+          pageId: fetchedPage.pageId,
+          extraction,
+        });
+
+        await updateStatus({
+          scanId,
+          status: "analyzing",
+          message: "SEO facts extracted; SEO checks are the next processing step.",
+          metadata: {
+            jobId: job.id,
+            jobName: job.name,
+            extraction: buildExtractionSuccessMetadata(extraction),
+          },
+        });
+      } catch (error) {
+        await failScan({
+          scanId,
+          errorCode: "SEO_EXTRACTION_FAILED",
+          errorMessage: getScanProcessingMessage("SEO_EXTRACTION_FAILED"),
+          metadata: {
+            jobId: job.id,
+            jobName: job.name,
+            reason:
+              error instanceof Error ? error.message : "Unknown extraction error",
+          },
+        });
+
+        return {
+          scanId,
+          action: "processed",
+          status: "failed",
+        };
+      }
     }
 
     await failScan({
       scanId,
-      errorCode: "SEO_EXTRACTION_NOT_IMPLEMENTED",
-      errorMessage: getScanProcessingMessage("SEO_EXTRACTION_NOT_IMPLEMENTED"),
+      errorCode: "SEO_CHECKS_NOT_IMPLEMENTED",
+      errorMessage: getScanProcessingMessage("SEO_CHECKS_NOT_IMPLEMENTED"),
       metadata: {
         jobId: job.id,
         jobName: job.name,
