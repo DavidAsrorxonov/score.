@@ -3,10 +3,10 @@
 Update this file whenever the current phase, active feature, or implementation state changes.
 
 ## Current Phase
-Feature 11 worker setup complete
+Feature 12 page fetcher complete
 
 ## Current Goal
-Worker setup is complete; queued `scan.run` jobs can be consumed by a separate BullMQ worker that updates scan lifecycle status and stops at the explicit temporary processing boundary.
+Page fetcher is complete; worker-picked scans now re-check URL safety, fetch bounded HTML with manual redirect validation, persist scan page fetch metadata, and stop at the explicit SEO extraction boundary.
 
 ## Completed
 - Read root agent instructions and required context files.
@@ -102,15 +102,23 @@ Worker setup is complete; queued `scan.run` jobs can be consumed by a separate B
 - Re-ran `npm run test -- worker/__tests__/run-scan.test.ts` and `npm run typecheck`; both pass.
 - Fixed worker startup after local execution exposed that `node --conditions react-server` breaks normal React/Next imports; worker scripts now use a small Node preload hook to stub only `server-only`, and the scan handler imports worker-safe scan modules directly instead of the scans barrel.
 - Re-ran `npm run test -- worker/__tests__/run-scan.test.ts`, `npm run typecheck`, `npm run lint`, `npm run build`, and `git diff --check`; all pass.
+- Started Feature 12 page fetcher.
+- Read `context/feature/12-page-fetcher.md` and its dependency specs for database schema, URL safety, domain verification, scan creation, queue setup, and worker setup.
+- Added the `lib/fetcher` boundary with centralized config, typed fetch success/failure results, user-safe fetch messages, bounded response body streaming, charset-aware HTML decoding, manual redirect handling, URL safety re-checks, timeout handling, status/content-type validation, and response size enforcement.
+- Added focused mocked fetcher tests for safe normalization, manual redirects, unsafe URL rejection, unsafe redirect rejection, non-HTML rejection, blocked status mapping, oversized response rejection, timeout mapping, and bounded body reads.
+- Integrated the worker with `fetchPageHtml`; active queued/validating/fetching scans now transition through `fetching`, persist successful fetch metadata into `scan_pages`, transition to `analyzing`, and stop with `SEO_EXTRACTION_NOT_IMPLEMENTED`.
+- Fetch failures now mark scans failed with the fetcher's stable error code and user-safe message.
+- Updated worker tests for fetch success persistence, fetch failure handling, and the new SEO extraction boundary.
+- Ran `npm run test -- lib/fetcher/__tests__/read-response-body.test.ts lib/fetcher/__tests__/fetch-page-html.test.ts worker/__tests__/run-scan.test.ts`, `npm run typecheck`, `npm run test`, `npm run lint`, `git diff --check`, and `npm run build`; all pass after rerunning build with approved network access for Next font fetching.
 
 ## In Progress
 - None.
 
 ## Next Up
-- Implement the page fetcher in the next feature unit.
+- Implement SEO extraction in the next feature unit.
 
 ## Open Questions
-- None for Feature 11.
+- None for Feature 12.
 
 ## Architecture Decisions
 - Keep the generated root-level `app/` directory and `@/*` import alias.
@@ -128,8 +136,12 @@ Worker setup is complete; queued `scan.run` jobs can be consumed by a separate B
 - Keep Feature 09 scan acceptance queue-free: accepted scans remain in `queued` status until Feature 10 adds real queue integration.
 - Use BullMQ with Redis for background job coordination, keep queue modules server-only, create Redis/queue connections lazily, keep BullMQ queue names and custom job IDs free of `:`, and keep V1 scan jobs limited to `{ scanId }` payloads.
 - Enqueue accepted scans only after the scan/usage transaction commits; if enqueueing fails, mark the scan `failed` with `QUEUE_ENQUEUE_FAILED` while leaving accepted usage intact.
-- Run the worker as a separate Node process, not inside Next.js; worker scripts use `node --conditions react-server --import tsx` so the existing `server-only` markers resolve correctly during local worker execution.
+- Run the worker as a separate Node process, not inside Next.js; worker scripts use `node --require ./worker/register-server-only.cjs --import tsx` so `server-only` markers are stubbed for local worker execution without changing React export conditions.
 - Keep Feature 11's processing boundary explicit by marking picked-up scans `failed` with `PROCESSING_NOT_IMPLEMENTED`; later fetcher/analyzer tasks must replace this rather than fabricating completed report data.
+- Keep page fetching separate from verification: verification remains a reachability preflight, while `lib/fetcher` retrieves bounded HTML and returns metadata for worker processing.
+- Page fetches use a larger 5 MB body limit than verification, manual redirect following, and per-request URL safety validation before every network request.
+- Do not store raw HTML in PostgreSQL for Feature 12; persist fetch metadata in `scan_pages.technical_data` and keep HTML in memory for the future SEO extraction step.
+- Replace Feature 11's temporary `PROCESSING_NOT_IMPLEMENTED` worker boundary with `SEO_EXTRACTION_NOT_IMPLEMENTED` after successful page fetch persistence.
 
 ## Session Notes
 - Next.js local docs reviewed for `next/font` and metadata usage before editing framework files.
@@ -167,3 +179,5 @@ Worker setup is complete; queued `scan.run` jobs can be consumed by a separate B
 - Worker dev follow-up: local `npm run worker:dev` initially failed because `tsx` transformed top-level `await` as CommonJS; switching to an async `main()` startup fixed that class of startup error.
 - Worker dev follow-up: local `npm run worker:dev` then failed because `node --conditions react-server` changed React's export condition and broke Next internals. The worker script now uses a preload hook for `server-only` instead of the global `react-server` condition.
 - Feature 11 follow-up sandboxed `npm run build` failed on Google Fonts network access; rerunning with approved network access passed.
+- Feature 12 uses mocked fetch responses and mocked DNS resolution in tests; no live external websites are required.
+- Feature 12 sandboxed `npm run build` failed on Google Fonts network access; rerunning with approved network access passed.

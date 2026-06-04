@@ -3,8 +3,13 @@ import type { Job } from "bullmq";
 import { z } from "zod";
 
 import { db } from "@/lib/db";
-import { scans } from "@/lib/db/schema";
+import { scanPages, scans } from "@/lib/db/schema";
 import type { Scan, ScanStatus } from "@/lib/db/types";
+import {
+  fetchPageHtml,
+  type FetchPageResult,
+  type FetchPageSuccess,
+} from "@/lib/fetcher";
 import type { RunScanJobData } from "@/lib/queue";
 import {
   getScanProcessingMessage,
@@ -25,12 +30,17 @@ const ACTIVE_SCAN_STATUSES = new Set<ScanStatus>([
   "generating_pdf",
 ]);
 
-type LoadedScan = Pick<Scan, "id" | "status">;
+type LoadedScan = Pick<Scan, "id" | "status" | "inputUrl" | "normalizedUrl">;
 
 interface RunScanJobDependencies {
   loadScan?: (scanId: string) => Promise<LoadedScan | null>;
   updateStatus?: typeof updateScanStatus;
   failScan?: typeof markScanFailed;
+  fetchPage?: (inputUrl: string) => Promise<FetchPageResult>;
+  saveFetchedPage?: (
+    scanId: string,
+    fetchResult: FetchPageSuccess,
+  ) => Promise<void>;
 }
 
 interface RunScanJobResult {
@@ -44,6 +54,8 @@ async function loadScanById(scanId: string): Promise<LoadedScan | null> {
     .select({
       id: scans.id,
       status: scans.status,
+      inputUrl: scans.inputUrl,
+      normalizedUrl: scans.normalizedUrl,
     })
     .from(scans)
     .where(eq(scans.id, scanId))
@@ -75,6 +87,108 @@ async function markUnexpectedFailure(
   }
 }
 
+async function saveFetchedScanPageMetadata(
+  scanId: string,
+  fetchResult: FetchPageSuccess,
+) {
+  const now = new Date();
+
+  await db
+    .insert(scanPages)
+    .values({
+      scanId,
+      url: fetchResult.normalizedUrl,
+      finalUrl: fetchResult.finalUrl,
+      statusCode: fetchResult.statusCode,
+      contentType: fetchResult.contentType,
+      responseTimeMs: fetchResult.responseTimeMs,
+      pageSizeBytes: fetchResult.pageSizeBytes,
+      technicalData: {
+        inputUrl: fetchResult.inputUrl,
+        normalizedUrl: fetchResult.normalizedUrl,
+        finalUrl: fetchResult.finalUrl,
+        hostname: fetchResult.hostname,
+        resolvedIps: fetchResult.resolvedIps,
+        statusCode: fetchResult.statusCode,
+        contentType: fetchResult.contentType,
+        contentLengthBytes: fetchResult.contentLengthBytes,
+        responseTimeMs: fetchResult.responseTimeMs,
+        pageSizeBytes: fetchResult.pageSizeBytes,
+        redirectChain: fetchResult.redirectChain,
+        fetchedAt: fetchResult.fetchedAt.toISOString(),
+      },
+      updatedAt: now,
+    })
+    .onConflictDoUpdate({
+      target: [scanPages.scanId, scanPages.url],
+      set: {
+        finalUrl: fetchResult.finalUrl,
+        statusCode: fetchResult.statusCode,
+        contentType: fetchResult.contentType,
+        responseTimeMs: fetchResult.responseTimeMs,
+        pageSizeBytes: fetchResult.pageSizeBytes,
+        technicalData: {
+          inputUrl: fetchResult.inputUrl,
+          normalizedUrl: fetchResult.normalizedUrl,
+          finalUrl: fetchResult.finalUrl,
+          hostname: fetchResult.hostname,
+          resolvedIps: fetchResult.resolvedIps,
+          statusCode: fetchResult.statusCode,
+          contentType: fetchResult.contentType,
+          contentLengthBytes: fetchResult.contentLengthBytes,
+          responseTimeMs: fetchResult.responseTimeMs,
+          pageSizeBytes: fetchResult.pageSizeBytes,
+          redirectChain: fetchResult.redirectChain,
+          fetchedAt: fetchResult.fetchedAt.toISOString(),
+        },
+        updatedAt: now,
+      },
+    });
+}
+
+function getScanFetchInput(scan: LoadedScan): string {
+  return scan.normalizedUrl ?? scan.inputUrl;
+}
+
+function removeUndefinedValues(
+  metadata: Record<string, unknown>,
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(metadata).filter(([, value]) => value !== undefined),
+  );
+}
+
+function buildFetchFailureMetadata(
+  fetchResult: Extract<FetchPageResult, { ok: false }>,
+) {
+  return removeUndefinedValues({
+    normalizedUrl: fetchResult.normalizedUrl,
+    finalUrl: fetchResult.finalUrl,
+    hostname: fetchResult.hostname,
+    resolvedIps: fetchResult.resolvedIps,
+    statusCode: fetchResult.statusCode,
+    contentType: fetchResult.contentType,
+    contentLengthBytes: fetchResult.contentLengthBytes,
+    responseTimeMs: fetchResult.responseTimeMs,
+    pageSizeBytes: fetchResult.pageSizeBytes,
+    redirectChain: fetchResult.redirectChain,
+    fetchedAt: fetchResult.fetchedAt.toISOString(),
+  });
+}
+
+function buildFetchSuccessMetadata(fetchResult: FetchPageSuccess) {
+  return {
+    finalUrl: fetchResult.finalUrl,
+    statusCode: fetchResult.statusCode,
+    contentType: fetchResult.contentType,
+    contentLengthBytes: fetchResult.contentLengthBytes,
+    responseTimeMs: fetchResult.responseTimeMs,
+    pageSizeBytes: fetchResult.pageSizeBytes,
+    redirectCount: fetchResult.redirectChain.length,
+    fetchedAt: fetchResult.fetchedAt.toISOString(),
+  };
+}
+
 export async function handleRunScanJob(
   job: Job<unknown>,
   dependencies: RunScanJobDependencies = {},
@@ -92,6 +206,9 @@ export async function handleRunScanJob(
   const loadScan = dependencies.loadScan ?? loadScanById;
   const updateStatus = dependencies.updateStatus ?? updateScanStatus;
   const failScan = dependencies.failScan ?? markScanFailed;
+  const fetchPage = dependencies.fetchPage ?? fetchPageHtml;
+  const saveFetchedPage =
+    dependencies.saveFetchedPage ?? saveFetchedScanPageMetadata;
 
   try {
     const scan = await loadScan(scanId);
@@ -131,7 +248,7 @@ export async function handleRunScanJob(
       await updateStatus({
         scanId,
         status: "fetching",
-        message: "Worker reached the page-fetching boundary.",
+        message: "Worker started fetching the page HTML.",
         metadata: {
           jobId: job.id,
           jobName: job.name,
@@ -139,10 +256,50 @@ export async function handleRunScanJob(
       });
     }
 
+    if (
+      scan.status === "queued" ||
+      scan.status === "validating" ||
+      scan.status === "fetching"
+    ) {
+      const fetchResult = await fetchPage(getScanFetchInput(scan));
+
+      if (!fetchResult.ok) {
+        await failScan({
+          scanId,
+          errorCode: fetchResult.code,
+          errorMessage: fetchResult.message,
+          metadata: {
+            jobId: job.id,
+            jobName: job.name,
+            fetch: buildFetchFailureMetadata(fetchResult),
+          },
+        });
+
+        return {
+          scanId,
+          action: "processed",
+          status: "failed",
+        };
+      }
+
+      await saveFetchedPage(scanId, fetchResult);
+
+      await updateStatus({
+        scanId,
+        status: "analyzing",
+        message: "Page HTML fetched; SEO extraction is the next processing step.",
+        metadata: {
+          jobId: job.id,
+          jobName: job.name,
+          fetch: buildFetchSuccessMetadata(fetchResult),
+        },
+      });
+    }
+
     await failScan({
       scanId,
-      errorCode: "PROCESSING_NOT_IMPLEMENTED",
-      errorMessage: getScanProcessingMessage("PROCESSING_NOT_IMPLEMENTED"),
+      errorCode: "SEO_EXTRACTION_NOT_IMPLEMENTED",
+      errorMessage: getScanProcessingMessage("SEO_EXTRACTION_NOT_IMPLEMENTED"),
       metadata: {
         jobId: job.id,
         jobName: job.name,
