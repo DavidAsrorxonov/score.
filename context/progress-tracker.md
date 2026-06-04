@@ -3,10 +3,10 @@
 Update this file whenever the current phase, active feature, or implementation state changes.
 
 ## Current Phase
-Feature 12 page fetcher complete
+Feature 13 SEO extraction complete
 
 ## Current Goal
-Page fetcher is complete; worker-picked scans now re-check URL safety, fetch bounded HTML with manual redirect validation, persist scan page fetch metadata, and stop at the explicit SEO extraction boundary.
+SEO extraction is complete; worker-fetched HTML is parsed into objective page facts, persisted on `scan_pages`, and stopped at the explicit SEO checks boundary.
 
 ## Completed
 - Read root agent instructions and required context files.
@@ -110,15 +110,21 @@ Page fetcher is complete; worker-picked scans now re-check URL safety, fetch bou
 - Fetch failures now mark scans failed with the fetcher's stable error code and user-safe message.
 - Updated worker tests for fetch success persistence, fetch failure handling, and the new SEO extraction boundary.
 - Ran `npm run test -- lib/fetcher/__tests__/read-response-body.test.ts lib/fetcher/__tests__/fetch-page-html.test.ts worker/__tests__/run-scan.test.ts`, `npm run typecheck`, `npm run test`, `npm run lint`, `git diff --check`, and `npm run build`; all pass after rerunning build with approved network access for Next font fetching.
+- Installed `cheerio` for deterministic server-side HTML parsing.
+- Added `lib/seo/extraction` with typed extraction of title, meta description, robots, canonical URL, language, charset, viewport, headings, internal/external links, images and alt presence, Open Graph metadata, Twitter card metadata, JSON-LD structured data, schema types, word count, and bounded text samples.
+- Added bounded extraction persistence for `scan_pages` SEO columns and diagnostic `technical_data` without storing raw HTML.
+- Integrated the worker after page fetch: fetched HTML is extracted, facts are persisted to the same scan page row when available, and successful extraction now stops at `SEO_CHECKS_NOT_IMPLEMENTED`.
+- Added focused tests for extraction metadata/headings/images/text, link classification, structured data parsing, and worker extraction integration/failure handling.
+- Ran `npm run lint`, `npm run typecheck`, `npm run test`, `git diff --check`, and `npm run build`; all pass after rerunning build with approved network access for Next font fetching.
 
 ## In Progress
 - None.
 
 ## Next Up
-- Implement SEO extraction in the next feature unit.
+- Implement deterministic SEO checks in the next feature unit.
 
 ## Open Questions
-- None for Feature 12.
+- None for Feature 13.
 
 ## Architecture Decisions
 - Keep the generated root-level `app/` directory and `@/*` import alias.
@@ -142,6 +148,8 @@ Page fetcher is complete; worker-picked scans now re-check URL safety, fetch bou
 - Page fetches use a larger 5 MB body limit than verification, manual redirect following, and per-request URL safety validation before every network request.
 - Do not store raw HTML in PostgreSQL for Feature 12; persist fetch metadata in `scan_pages.technical_data` and keep HTML in memory for the future SEO extraction step.
 - Replace Feature 11's temporary `PROCESSING_NOT_IMPLEMENTED` worker boundary with `SEO_EXTRACTION_NOT_IMPLEMENTED` after successful page fetch persistence.
+- Keep SEO extraction factual only: extraction persists objective page facts and bounded diagnostic arrays, while findings, scoring, AI report generation, report UI, and PDF export remain out of scope.
+- Replace Feature 12's temporary `SEO_EXTRACTION_NOT_IMPLEMENTED` worker boundary with `SEO_CHECKS_NOT_IMPLEMENTED` after successful extraction persistence.
 
 ## Session Notes
 - Next.js local docs reviewed for `next/font` and metadata usage before editing framework files.
@@ -181,3 +189,7 @@ Page fetcher is complete; worker-picked scans now re-check URL safety, fetch bou
 - Feature 11 follow-up sandboxed `npm run build` failed on Google Fonts network access; rerunning with approved network access passed.
 - Feature 12 uses mocked fetch responses and mocked DNS resolution in tests; no live external websites are required.
 - Feature 12 sandboxed `npm run build` failed on Google Fonts network access; rerunning with approved network access passed.
+- Started Feature 13 SEO extraction.
+- Read `context/feature/13-seo-extraction.md` and its required dependency specs for database schema, worker setup, and page fetching.
+- Feature 13 sandboxed `npm install cheerio` failed on registry DNS; rerunning with approved network access completed successfully.
+- Feature 13 sandboxed `npm run build` failed on Google Fonts network access; rerunning with approved network access passed.

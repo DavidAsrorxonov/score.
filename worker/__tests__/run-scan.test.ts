@@ -3,6 +3,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ScanStatus } from "@/lib/db/types";
 import type { FetchPageSuccess } from "@/lib/fetcher";
+import type { ExtractedPageSeo } from "@/lib/seo";
 
 import type { handleRunScanJob as handleRunScanJobType } from "../handlers/run-scan";
 
@@ -41,8 +42,37 @@ function createFetchSuccess(): FetchPageSuccess {
     responseTimeMs: 42,
     pageSizeBytes: 18,
     redirectChain: [],
-    html: "<html>Hello</html>",
+    html: "<html><head><title>Example</title></head><body><h1>Hello</h1></body></html>",
     fetchedAt: new Date("2026-06-03T00:00:00.000Z"),
+  };
+}
+
+function createExtraction(): ExtractedPageSeo {
+  return {
+    url: "https://example.com/",
+    finalUrl: "https://example.com/",
+    title: "Example",
+    metaDescription: "Example page",
+    metaRobots: null,
+    canonicalUrl: "https://example.com/",
+    htmlLang: "en",
+    charset: "utf-8",
+    viewport: "width=device-width, initial-scale=1",
+    headings: [{ level: 1, text: "Hello" }],
+    h1: ["Hello"],
+    h2: [],
+    h3: [],
+    links: [],
+    internalLinks: [],
+    externalLinks: [],
+    images: [],
+    imagesMissingAltCount: 0,
+    openGraph: {},
+    twitterCard: {},
+    structuredData: [],
+    schemaTypes: [],
+    wordCount: 1,
+    textSample: "Hello",
   };
 }
 
@@ -65,7 +95,9 @@ function createDependencies(scan: TestScan | null = createTestScan("queued")) {
     updateStatus: vi.fn().mockResolvedValue(undefined),
     failScan: vi.fn().mockResolvedValue(undefined),
     fetchPage: vi.fn().mockResolvedValue(createFetchSuccess()),
-    saveFetchedPage: vi.fn().mockResolvedValue(undefined),
+    saveFetchedPage: vi.fn().mockResolvedValue({ pageId: "page-id" }),
+    extractSeo: vi.fn().mockReturnValue(createExtraction()),
+    saveExtraction: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -90,6 +122,8 @@ describe("handleRunScanJob", () => {
     expect(dependencies.failScan).not.toHaveBeenCalled();
     expect(dependencies.fetchPage).not.toHaveBeenCalled();
     expect(dependencies.saveFetchedPage).not.toHaveBeenCalled();
+    expect(dependencies.extractSeo).not.toHaveBeenCalled();
+    expect(dependencies.saveExtraction).not.toHaveBeenCalled();
   });
 
   it("fails missing scans clearly", async () => {
@@ -103,6 +137,8 @@ describe("handleRunScanJob", () => {
     expect(dependencies.failScan).not.toHaveBeenCalled();
     expect(dependencies.fetchPage).not.toHaveBeenCalled();
     expect(dependencies.saveFetchedPage).not.toHaveBeenCalled();
+    expect(dependencies.extractSeo).not.toHaveBeenCalled();
+    expect(dependencies.saveExtraction).not.toHaveBeenCalled();
   });
 
   it("does not reprocess completed scans", async () => {
@@ -122,6 +158,8 @@ describe("handleRunScanJob", () => {
     expect(dependencies.failScan).not.toHaveBeenCalled();
     expect(dependencies.fetchPage).not.toHaveBeenCalled();
     expect(dependencies.saveFetchedPage).not.toHaveBeenCalled();
+    expect(dependencies.extractSeo).not.toHaveBeenCalled();
+    expect(dependencies.saveExtraction).not.toHaveBeenCalled();
   });
 
   it("does not reprocess failed scans", async () => {
@@ -141,12 +179,16 @@ describe("handleRunScanJob", () => {
     expect(dependencies.failScan).not.toHaveBeenCalled();
     expect(dependencies.fetchPage).not.toHaveBeenCalled();
     expect(dependencies.saveFetchedPage).not.toHaveBeenCalled();
+    expect(dependencies.extractSeo).not.toHaveBeenCalled();
+    expect(dependencies.saveExtraction).not.toHaveBeenCalled();
   });
 
-  it("fetches queued scans, persists metadata, and stops at the SEO extraction boundary", async () => {
+  it("fetches queued scans, persists extraction, and stops at the SEO checks boundary", async () => {
     const fetchSuccess = createFetchSuccess();
+    const extraction = createExtraction();
     const dependencies = createDependencies(createTestScan("queued"));
     dependencies.fetchPage.mockResolvedValue(fetchSuccess);
+    dependencies.extractSeo.mockReturnValue(extraction);
 
     const result = await handleRunScanJob(
       createJob({ scanId: " scan-id " }),
@@ -190,11 +232,35 @@ describe("handleRunScanJob", () => {
         }),
       }),
     );
+    expect(dependencies.extractSeo).toHaveBeenCalledWith({
+      html: fetchSuccess.html,
+      url: "https://example.com/",
+      finalUrl: "https://example.com/",
+    });
+    expect(dependencies.saveExtraction).toHaveBeenCalledWith({
+      scanId: "scan-id",
+      pageId: "page-id",
+      extraction,
+    });
+    expect(dependencies.updateStatus).toHaveBeenNthCalledWith(
+      4,
+      expect.objectContaining({
+        scanId: "scan-id",
+        status: "analyzing",
+        metadata: expect.objectContaining({
+          extraction: expect.objectContaining({
+            title: "Example",
+            h1Count: 1,
+            wordCount: 1,
+          }),
+        }),
+      }),
+    );
     expect(dependencies.failScan).toHaveBeenCalledWith(
       expect.objectContaining({
         scanId: "scan-id",
-        errorCode: "SEO_EXTRACTION_NOT_IMPLEMENTED",
-        errorMessage: "SEO extraction is not implemented yet.",
+        errorCode: "SEO_CHECKS_NOT_IMPLEMENTED",
+        errorMessage: "SEO checks are not implemented yet.",
       }),
     );
   });
@@ -204,7 +270,7 @@ describe("handleRunScanJob", () => {
 
     await handleRunScanJob(createJob({ scanId: "scan-id" }), dependencies);
 
-    expect(dependencies.updateStatus).toHaveBeenCalledTimes(2);
+    expect(dependencies.updateStatus).toHaveBeenCalledTimes(3);
     expect(dependencies.updateStatus).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
@@ -214,6 +280,13 @@ describe("handleRunScanJob", () => {
     );
     expect(dependencies.updateStatus).toHaveBeenNthCalledWith(
       2,
+      expect.objectContaining({
+        scanId: "scan-id",
+        status: "analyzing",
+      }),
+    );
+    expect(dependencies.updateStatus).toHaveBeenNthCalledWith(
+      3,
       expect.objectContaining({
         scanId: "scan-id",
         status: "analyzing",
@@ -252,6 +325,8 @@ describe("handleRunScanJob", () => {
       status: "failed",
     });
     expect(dependencies.saveFetchedPage).not.toHaveBeenCalled();
+    expect(dependencies.extractSeo).not.toHaveBeenCalled();
+    expect(dependencies.saveExtraction).not.toHaveBeenCalled();
     expect(dependencies.failScan).toHaveBeenCalledWith(
       expect.objectContaining({
         scanId: "scan-id",
@@ -262,6 +337,33 @@ describe("handleRunScanJob", () => {
             statusCode: 403,
           }),
         }),
+      }),
+    );
+  });
+
+  it("marks extraction failures with a safe extraction error", async () => {
+    const dependencies = createDependencies(createTestScan("queued"));
+    dependencies.extractSeo.mockImplementation(() => {
+      throw new Error("parser crashed");
+    });
+
+    const result = await handleRunScanJob(
+      createJob({ scanId: "scan-id" }),
+      dependencies,
+    );
+
+    expect(result).toEqual({
+      scanId: "scan-id",
+      action: "processed",
+      status: "failed",
+    });
+    expect(dependencies.saveExtraction).not.toHaveBeenCalled();
+    expect(dependencies.failScan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scanId: "scan-id",
+        errorCode: "SEO_EXTRACTION_FAILED",
+        errorMessage:
+          "The page was fetched, but SEO data could not be extracted.",
       }),
     );
   });
