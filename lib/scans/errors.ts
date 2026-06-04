@@ -19,12 +19,14 @@ export type WorkerScanErrorCode =
   | "SCAN_NOT_FOUND"
   | "INVALID_JOB_PAYLOAD"
   | "PROCESSING_NOT_IMPLEMENTED"
+  | "SEO_EXTRACTION_NOT_IMPLEMENTED"
   | "WORKER_PROCESSING_FAILED";
 
 export const SCAN_PROCESSING_MESSAGES = {
   SCAN_NOT_FOUND: "The scan could not be found.",
   INVALID_JOB_PAYLOAD: "The scan job payload is invalid.",
   PROCESSING_NOT_IMPLEMENTED: "Scan processing is not implemented yet.",
+  SEO_EXTRACTION_NOT_IMPLEMENTED: "SEO extraction is not implemented yet.",
   WORKER_PROCESSING_FAILED: "The scan could not be processed.",
 } as const satisfies Record<WorkerScanErrorCode, string>;
 
